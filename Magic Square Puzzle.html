@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magic Square Puzzle</title>
+    <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Magic%20Square%20Puzzle%22%2C%22short_name%22%3A%22MagicSquare%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%231e1e2f%22%2C%22theme_color%22%3A%22%2300ff88%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%20100'%3E%253Crect%20width%3D'100'%20height%3D'100'%20fill%3D'%252300ff88'%2F%3E%253Ctext%20x%3D'50'%20y%3D'70'%20font-size%3D'70'%20text-anchor%3D'middle'%20fill%3D'%25231e1e2f'%3E%25E2%259C%25A6%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22100x100%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+    <style>
+        /* ---- تمام CSS وہی ہے جو پچھلے کوڈ میں تھا ---- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px 0;
+        }
+        h2 {
+            margin: 5px 0;
+            color: #00ff88;
+            font-size: 1.7em;
+            text-align: center;
+        }
+        .stats-bar {
+            background: #2a2a3d;
+            padding: 8px 18px;
+            border-radius: 25px;
+            margin-bottom: 8px;
+            font-size: 1em;
+            color: #ffd966;
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .level-info {
+            font-size: 1.3em;
+            margin-bottom: 5px;
+            background: #3a3a55;
+            padding: 8px 25px;
+            border-radius: 30px;
+            display: inline-block;
+        }
+        .target-info {
+            font-size: 1.2em;
+            margin-bottom: 12px;
+            color: #ffb74d;
+            background: #2e2e42;
+            padding: 6px 20px;
+            border-radius: 20px;
+        }
+        .puzzle-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .grid {
+            display: grid;
+            gap: 4px;
+            padding: 10px;
+            background: #2d2d44;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+        }
+        .cell {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #4a4a6a;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            user-select: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            color: #f0f0f0;
+        }
+        .cell.selected {
+            background: #e09f3e;
+            color: #000;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px #ffb74d;
+        }
+        .cell:hover:not(.sum-cell):not(.diag-cell) {
+            background: #5c5c82;
+        }
+        .sum-cell, .diag-cell {
+            background: #000000;
+            color: #ffd700;
+            cursor: default;
+            font-weight: bold;
+            box-shadow: 0 0 8px #ffd70044;
+        }
+        .sum-cell { font-size: 0.9em; }
+        .diag-cell { font-size: 0.8em; }
+        .button {
+            margin-top: 12px;
+            padding: 10px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 30px;
+            background: #f0c45a;
+            color: #1e1e2f;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .button:hover { background: #ffd966; }
+        .button:disabled {
+            background: #5a5a5a;
+            color: #999;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .button:disabled:hover { background: #5a5a5a; }
+        .nav-btn {
+            font-size: 0.9em;
+            padding: 8px 20px;
+            margin-top: 0;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .win-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            visibility: hidden;
+        }
+        .win-message {
+            background: #1e1e2f;
+            padding: 25px 35px;
+            border-radius: 20px;
+            text-align: center;
+            border: 3px solid #00aaff;
+            box-shadow: 0 0 40px #00aaff;
+            font-size: 1.6em;
+            font-weight: bold;
+            color: #00aaff;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            max-width: 90%;
+        }
+        .win-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .win-btn {
+            padding: 12px 24px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            background: #f0c45a;
+            color: #1e1e2f;
+        }
+        .win-btn:hover { background: #ffd966; }
+        .win-btn.prev {
+            background: #5a5a7a;
+            color: #ffd700;
+        }
+        .win-btn:disabled {
+            background: #5a5a5a;
+            color: #999;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h2>Magic Square Puzzle</h2>
+    <div class="stats-bar">
+        <span>🏆 Points: <strong id="totalPointsDisplay">0</strong></span>
+        <span>📊 Solved: <strong id="solvedCountDisplay">0/50</strong></span>
+    </div>
+    <div class="level-info">
+        Level: <span id="levelDisplay">3</span> x <span id="sizeDisplay">3</span>
+    </div>
+    <div class="target-info">
+        Target Total = <strong><span id="targetSumDisplay">15</span></strong>
+    </div>
+    <div class="puzzle-wrapper">
+        <div class="grid" id="gridContainer"></div>
+    </div>
+    <button class="button" onclick="resetLevel()">🔄 Shuffle Again</button>
+
+    <div class="nav-buttons" id="inGameNav">
+        <button class="button nav-btn" id="inGameNextPuzzle">Next Puzzle</button>
+        <button class="button nav-btn" id="inGameNextLevel">Next Level</button>
+        <button class="button nav-btn" id="inGamePrevLevel" style="display:none;">Previous Level</button>
+    </div>
+
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-message" id="winMessage"></div>
+        <div class="win-buttons">
+            <button class="win-btn" id="nextPuzzleBtn">Next Puzzle</button>
+            <button class="win-btn" id="nextLevelBtn">Next Level</button>
+            <button class="win-btn prev" id="prevLevelBtn">Previous Level</button>
+        </div>
+    </div>
+
+    <script>
+        // ========== جادوئی مربع جنریٹر (وہی) ==========
+        function generateOddMagicSquare(n, start, step) {
+            let magic = Array.from({ length: n }, () => Array(n).fill(0));
+            let row = 0, col = Math.floor(n / 2);
+            for (let i = 0; i < n * n; i++) {
+                magic[row][col] = start + i * step;
+                let newRow = (row - 1 + n) % n;
+                let newCol = (col + 1) % n;
+                if (magic[newRow][newCol] !== 0) row = (row + 1) % n;
+                else { row = newRow; col = newCol; }
+            }
+            return magic;
+        }
+        function generateDoublyEvenMagicSquare(n, start, step) {
+            let magic = Array.from({ length: n }, () => Array(n).fill(0));
+            let num = start;
+            for (let r = 0; r < n; r++) {
+                for (let c = 0; c < n; c++) {
+                    magic[r][c] = num;
+                    num += step;
+                }
+            }
+            for (let r = 0; r < n; r++) {
+                for (let c = 0; c < n; c++) {
+                    if ((r % 4 === 0 || r % 4 === 3) && (c % 4 === 0 || c % 4 === 3)) continue;
+                    if ((r % 4 === 1 || r % 4 === 2) && (c % 4 === 1 || c % 4 === 2)) continue;
+                    let idx = (magic[r][c] - start) / step;
+                    magic[r][c] = start + ((n * n - 1) - idx) * step;
+                }
+            }
+            return magic;
+        }
+        function generateSinglyEvenMagicSquare(n, start, step) {
+            let m = n / 2;
+            let small = generateOddMagicSquare(m, 1, 1);
+            let pattern = Array.from({ length: m }, () => Array(m).fill(''));
+            for (let r = 0; r < m; r++) {
+                for (let c = 0; c < m; c++) {
+                    if (r < m / 2) pattern[r][c] = 'L';
+                    else if (r === m / 2) pattern[r][c] = (c === m / 2) ? 'U' : 'L';
+                    else pattern[r][c] = 'X';
+                }
+            }
+            let half = Math.floor(m / 2);
+            pattern[half][half] = 'U';
+            pattern[half][half - 1] = 'L';
+            let magic = Array.from({ length: n }, () => Array(n).fill(0));
+            for (let r = 0; r < m; r++) {
+                for (let c = 0; c < m; c++) {
+                    let val = small[r][c] - 1;
+                    let quad = pattern[r][c];
+                    let a, b, c1, d;
+                    if (quad === 'L') { a = val*4+3; b = val*4; c1 = val*4+2; d = val*4+1; }
+                    else if (quad === 'U') { a = val*4; b = val*4+3; c1 = val*4+1; d = val*4+2; }
+                    else { a = val*4; b = val*4+3; c1 = val*4+2; d = val*4+1; }
+                    magic[r][c] = a; magic[r][c+m] = b; magic[r+m][c] = c1; magic[r+m][c+m] = d;
+                }
+            }
+            for (let r = 0; r < n; r++) {
+                for (let c = 0; c < n; c++) {
+                    magic[r][c] = start + magic[r][c] * step;
+                }
+            }
+            return magic;
+        }
+        function generateMagicSquare(n, start, step) {
+            if (n % 2 === 1) return generateOddMagicSquare(n, start, step);
+            if (n % 4 === 0) return generateDoublyEvenMagicSquare(n, start, step);
+            return generateSinglyEvenMagicSquare(n, start, step);
+        }
+        function createPuzzlesForSize(n) {
+            let puzzles = [];
+            let attempts = 0;
+            while (puzzles.length < 50 && attempts < 500) {
+                let start = Math.floor(Math.random() * 40) + 1;
+                let step = Math.floor(Math.random() * 4) + 2;
+                let last = start + (n * n - 1) * step;
+                if (last > 3000) { attempts++; continue; }
+                try {
+                    let magic = generateMagicSquare(n, start, step);
+                    let flat = magic.flat();
+                    let min = Math.min(...flat);
+                    let max = Math.max(...flat);
+                    let targetSum = (n * (min + max)) / 2;
+                    let rowSum = magic[0].reduce((a,b)=>a+b,0);
+                    let valid = true;
+                    for (let r=1; r<n; r++) if (magic[r].reduce((a,b)=>a+b,0) !== rowSum) valid = false;
+                    if (valid && targetSum === rowSum) {
+                        puzzles.push({ numbers: flat.sort((a,b)=>a-b), targetSum: targetSum });
+                    }
+                } catch(e) {}
+                attempts++;
+            }
+            while (puzzles.length < 50) {
+                let start = 1 + Math.floor(Math.random() * 39);
+                let step = 2 + Math.floor(Math.random() * 4);
+                let magic = generateMagicSquare(n, start, step);
+                let flat = magic.flat();
+                puzzles.push({ numbers: flat.sort((a,b)=>a-b), targetSum: (n * (flat[0] + flat[flat.length-1])) / 2 });
+            }
+            return puzzles;
+        }
+        let puzzlesBySize = {};
+        for (let size = 3; size <= 15; size++) puzzlesBySize[size] = createPuzzlesForSize(size);
+
+        const STORAGE_KEY = 'magicSquareProgress';
+        let gameData = { points: 0, solved: {} };
+        function loadGameData() {
+            let stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try { gameData = JSON.parse(stored); } catch(e) { resetGameData(); }
+            } else resetGameData();
+            for (let size = 3; size <= 15; size++) if (!gameData.solved[size]) gameData.solved[size] = new Array(50).fill(false);
+        }
+        function resetGameData() {
+            gameData = { points: 0, solved: {} };
+            for (let size = 3; size <= 15; size++) gameData.solved[size] = new Array(50).fill(false);
+        }
+        function saveGameData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(gameData)); }
+        function isPuzzleSolved(size, idx) { return gameData.solved[size] && gameData.solved[size][idx]; }
+        function markPuzzleSolved(size, idx) {
+            if (gameData.solved[size][idx]) return false;
+            gameData.solved[size][idx] = true;
+            let n = size;
+            let base = n * n;
+            let bonus = size > 3 ? (size - 3) * 10 : 0;
+            gameData.points += base + bonus;
+            saveGameData();
+            return true;
+        }
+
+        let currentSize = 3, currentPuzzleIndex = 0, targetSum = 0, currentMatrix = [], selectedRow = -1, selectedCol = -1, currentPuzzleSolved = false;
+
+        const gridContainer = document.getElementById('gridContainer');
+        const levelDisplay = document.getElementById('levelDisplay');
+        const sizeDisplay = document.getElementById('sizeDisplay');
+        const targetSumDisplay = document.getElementById('targetSumDisplay');
+        const winOverlay = document.getElementById('winOverlay');
+        const winMessage = document.getElementById('winMessage');
+        const nextPuzzleBtn = document.getElementById('nextPuzzleBtn');
+        const nextLevelBtn = document.getElementById('nextLevelBtn');
+        const prevLevelBtn = document.getElementById('prevLevelBtn');
+        const inGameNav = document.getElementById('inGameNav');
+        const inGameNextPuzzle = document.getElementById('inGameNextPuzzle');
+        const inGameNextLevel = document.getElementById('inGameNextLevel');
+        const inGamePrevLevel = document.getElementById('inGamePrevLevel');
+        const totalPointsDisplay = document.getElementById('totalPointsDisplay');
+        const solvedCountDisplay = document.getElementById('solvedCountDisplay');
+
+        function updateStatsDisplay() {
+            totalPointsDisplay.textContent = gameData.points;
+            let cnt = gameData.solved[currentSize].filter(Boolean).length;
+            solvedCountDisplay.textContent = cnt + '/50';
+        }
+        function shuffleArray(arr) { for(let i=arr.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+        function arrayToMatrix(arr, n) { let m=[]; for(let r=0;r<n;r++) m.push(arr.slice(r*n,(r+1)*n)); return m; }
+        function swapCells(r1,c1,r2,c2) { [currentMatrix[r1][c1],currentMatrix[r2][c2]] = [currentMatrix[r2][c2],currentMatrix[r1][c1]]; }
+        function computeSums() {
+            let n=currentSize, rowSums=[], colSums=new Array(n).fill(0), diag1=0, diag2=0;
+            for(let r=0;r<n;r++){
+                let sum=0;
+                for(let c=0;c<n;c++){ sum+=currentMatrix[r][c]; colSums[c]+=currentMatrix[r][c]; }
+                rowSums.push(sum); diag1+=currentMatrix[r][r]; diag2+=currentMatrix[r][n-1-r];
+            }
+            return {rowSums,colSums,diag1,diag2};
+        }
+        function isSolved(){
+            let sums = computeSums();
+            if(sums.diag1!==targetSum||sums.diag2!==targetSum) return false;
+            for(let i=0;i<currentSize;i++) if(sums.rowSums[i]!==targetSum||sums.colSums[i]!==targetSum) return false;
+            return true;
+        }
+        function updateNavButtonsState(){
+            if(currentSize===15){ inGameNextLevel.disabled=true; nextLevelBtn.disabled=true; }
+            else { inGameNextLevel.disabled=false; nextLevelBtn.disabled=false; }
+            if(currentSize>3){ inGamePrevLevel.style.display='inline-block'; prevLevelBtn.style.display='inline-block'; }
+            else { inGamePrevLevel.style.display='none'; prevLevelBtn.style.display='none'; }
+        }
+        function showWinMessage(){
+            let pts=0;
+            if(!currentPuzzleSolved){ let n=currentSize; pts = n*n + (currentSize>3?(currentSize-3)*10:0); }
+            winMessage.innerHTML = `🎉 PUZZLE SOLVED! (Size ${currentSize}x${currentSize})<br><span style="font-size:0.8em;color:#ffd966;">+${pts} Points</span>`;
+            nextPuzzleBtn.style.display='inline-block'; nextLevelBtn.style.display='inline-block'; prevLevelBtn.style.display=currentSize>3?'inline-block':'none';
+            winOverlay.style.visibility='visible'; inGameNav.style.display='none';
+            updateNavButtonsState();
+        }
+        function hideWinOverlay(){ winOverlay.style.visibility='hidden'; inGameNav.style.display='flex'; updateNavButtonsState(); updateStatsDisplay(); }
+        function cellClick(row,col){
+            if(row<1||row>currentSize||col<1||col>currentSize) return;
+            let r=row-1,c=col-1;
+            if(selectedRow===-1){ selectedRow=r; selectedCol=c; renderGrid(); }
+            else if(selectedRow===r&&selectedCol===c){ selectedRow=-1; selectedCol=-1; renderGrid(); }
+            else {
+                swapCells(selectedRow,selectedCol,r,c);
+                selectedRow=-1; selectedCol=-1;
+                renderGrid();
+                if(isSolved()){
+                    if(!currentPuzzleSolved) markPuzzleSolved(currentSize,currentPuzzleIndex);
+                    showWinMessage();
+                }
+            }
+        }
+        function renderGrid(){
+            let n=currentSize, sums=computeSums();
+            targetSumDisplay.textContent=targetSum;
+            let totalCols=n+2,totalRows=n+2;
+            gridContainer.innerHTML='';
+            gridContainer.style.gridTemplateColumns=`repeat(${totalCols},auto)`;
+            gridContainer.style.gridTemplateRows=`repeat(${totalRows},auto)`;
+            let cellSize=Math.min(42,Math.floor((window.innerWidth-120)/totalCols));
+            for(let r=0;r<totalRows;r++){
+                for(let c=0;c<totalCols;c++){
+                    let cell=document.createElement('div');
+                    if(r>=1&&r<=n&&c>=1&&c<=n){
+                        cell.className='cell';
+                        if(selectedRow===r-1&&selectedCol===c-1) cell.classList.add('selected');
+                        cell.textContent=currentMatrix[r-1][c-1];
+                        cell.style.width=cellSize+'px'; cell.style.height=cellSize+'px'; cell.style.fontSize=(cellSize*0.4)+'px';
+                        cell.addEventListener('click',(function(row,col){ return function(){ cellClick(row,col); }; })(r,c));
+                    } else {
+                        let content='', isDiag=false;
+                        if(r===0&&c===0){ content=sums.diag1; isDiag=true; }
+                        else if(r===0&&c===n+1){ content=sums.diag2; isDiag=true; }
+                        else if(r===n+1&&c===0){ content=sums.diag2; isDiag=true; }
+                        else if(r===n+1&&c===n+1){ content=sums.diag1; isDiag=true; }
+                        else if(r===0&&c>=1&&c<=n){ content=sums.colSums[c-1]; }
+                        else if(r===n+1&&c>=1&&c<=n){ content=sums.colSums[c-1]; }
+                        else if(c===0&&r>=1&&r<=n){ content=sums.rowSums[r-1]; }
+                        else if(c===n+1&&r>=1&&r<=n){ content=sums.rowSums[r-1]; }
+                        if(content!==''){
+                            cell.className=isDiag?'cell diag-cell':'cell sum-cell';
+                            cell.textContent=content;
+                            cell.style.width=cellSize+'px'; cell.style.height=cellSize+'px'; cell.style.fontSize=(cellSize*0.45)+'px';
+                        } else cell.style.visibility='hidden';
+                    }
+                    gridContainer.appendChild(cell);
+                }
+            }
+            levelDisplay.textContent=n; sizeDisplay.textContent=n;
+            updateStatsDisplay();
+        }
+        function loadPuzzle(size,idx){
+            currentSize=size; currentPuzzleIndex=idx;
+            let puzzle = puzzlesBySize[size][idx];
+            targetSum=puzzle.targetSum;
+            let shuffled=shuffleArray([...puzzle.numbers]);
+            currentMatrix=arrayToMatrix(shuffled,size);
+            selectedRow=-1; selectedCol=-1;
+            currentPuzzleSolved=isPuzzleSolved(size,idx);
+            renderGrid(); hideWinOverlay(); updateNavButtonsState(); updateStatsDisplay();
+        }
+        function nextPuzzle(){ loadPuzzle(currentSize,(currentPuzzleIndex+1)%50); }
+        function nextLevel(){ if(currentSize<15) loadPuzzle(currentSize+1,0); }
+        function previousLevel(){ if(currentSize>3) loadPuzzle(currentSize-1,0); }
+        function resetLevel(){
+            let puzzle = puzzlesBySize[currentSize][currentPuzzleIndex];
+            let shuffled=shuffleArray([...puzzle.numbers]);
+            currentMatrix=arrayToMatrix(shuffled,currentSize);
+            selectedRow=-1; selectedCol=-1;
+            renderGrid();
+        }
+        nextPuzzleBtn.addEventListener('click',nextPuzzle);
+        nextLevelBtn.addEventListener('click',()=>{ if(currentSize<15) nextLevel(); });
+        prevLevelBtn.addEventListener('click',previousLevel);
+        inGameNextPuzzle.addEventListener('click',nextPuzzle);
+        inGameNextLevel.addEventListener('click',()=>{ if(currentSize<15) nextLevel(); });
+        inGamePrevLevel.addEventListener('click',previousLevel);
+
+        // Service Worker رجسٹر کریں (PWA)
+        if('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register("data:application/javascript," + encodeURIComponent(
+                    "self.addEventListener('install',e=>{e.waitUntil(caches.open('v1').then(c=>c.addAll(['.'])).then(()=>self.skipWaiting())));" +
+                    "self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))});"
+                )).catch(err => console.log('SW not registered', err));
+            });
+        }
+
+        loadGameData();
+        loadPuzzle(3,0);
+        window.addEventListener('resize', renderGrid);
+    </script>
+</body>
+</html>
